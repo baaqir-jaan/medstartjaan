@@ -1,0 +1,54 @@
+/* Guide Box Styling */
+.bg-blue-100 {
+  background-color: #edf2ff; /* Light blue tone for guide box */
+}
+.text-blue-800 {
+  color: #23395d; /* Dark blue tone for headings */
+}
+.text-gray-700 {
+  color: #525252; /* Soft gray for readability */
+}
+
+
+/* Button Styles */
+button {
+  border-radius: 8px; /* Rounder button edges for a softer look */
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+}
+button:hover {
+  filter: brightness(1.2); /* Brighten buttons on hover for emphasis */
+}
+button.bg-gradient-to-r {
+  background-image: linear-gradient(90deg, #4776e6, #8e54e9); /* Blue-purple gradient */
+}
+
+/* Gradient Background Update */
+.bg-gradient-to-br {
+  background-image: linear-gradient(135deg, #4776e6, #8e54e9); /* Smoother flow with brand colors */
+}
+
+/* Main Card Padding */
+.card {
+  padding: 2rem; /* Increase padding for breathing space */
+  border-radius: 16px; /* Rounded edges for a polished look */
+}
+
+/* Table Header Styling */
+th {
+  font-weight: 600;
+  color: #23395d; /* Dark blue */
+}
+
+/* Financial Model Section */
+#financial-model-content {
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 12px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Spacing Adjustments */
+.space-y-6 > * + * {
+  margin-top: 1.5rem;
+}
