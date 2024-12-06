@@ -3,6 +3,21 @@
 import React, { useState } from 'react';
 import { DollarSign, Download, Loader, AlertCircle } from 'lucide-react';
 
+// Add this at the top of your file, after the imports
+const API_URL = "https://medstartjaan.onrender.com";
+
+// Then update the fetch call:
+const response = await fetch(`${API_URL}/api/physician`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    search_term: npi,
+    search_type: 'npi',
+  }),
+});
+
 const CALCULATION_CONSTANTS = {
   averageRevenuePerPatient: 52,
   averageVisitsPerYear: 10,
