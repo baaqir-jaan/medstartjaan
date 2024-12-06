@@ -6,18 +6,6 @@ import { DollarSign, Download, Loader, AlertCircle } from 'lucide-react';
 // Add this at the top of your file, after the imports
 const API_URL = "https://medstartjaan.onrender.com";
 
-// Then update the fetch call:
-const response = await fetch(`${API_URL}/api/physician`, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    search_term: npi,
-    search_type: 'npi',
-  }),
-});
-
 const CALCULATION_CONSTANTS = {
   averageRevenuePerPatient: 52,
   averageVisitsPerYear: 10,
@@ -27,12 +15,32 @@ const CALCULATION_CONSTANTS = {
 };
 
 const CCMCalculator = () => {
+  const [data, setData] = useState(null);
   const [npiList, setNpiList] = useState('');
   const [results, setResults] = useState(null);
   const [calcId, setCalcId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showEmailForm, setShowEmailForm] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const response = await fetch(`${API_URL}/api/physician`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ search_term: 'someNPI', search_type: 'npi' }),
+      });
+
+      if (!response.ok) {
+        // handle error
+      }
+
+      const jsonData = await response.json();
+      setData(jsonData);
+    };
+
+    fetchData();
+  }, []);
 
   const handleCalculate = async () => {
     if (!npiList.trim()) {
