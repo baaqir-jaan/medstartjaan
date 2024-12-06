@@ -1,170 +1,297 @@
-import requests
-import csv
+# cms_calc.py
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import uvicorn
+import logging
 import os
-from datetime import datetime
-import re
-import json
+from dotenv import load_dotenv
+import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from typing import Optional, Dict, Any
+from uuid import uuid4
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
 
-def extract_names_from_rtf(rtf_content):
-    clean_content = re.sub(r'\\[a-z]+[-]?\d*\s?', '', rtf_content)
-    clean_content = re.sub(r'[{}]', '', clean_content)
-    names = [name.strip() for name in clean_content.split('\\') if name.strip()]
-    names = [name for name in names if re.match(r'^[A-Za-z\s]+$', name)]
-    return names
+# Load environment variables
+load_dotenv()
 
-def fetch_physician_data(api_url, physician_name):
-    offset = 0
-    page_size = 5000  # Keep the page size at 5000, but we'll go through all pages
-    max_pages = 100  # Set a reasonable maximum number of pages to prevent infinite loops
-    timeout = 30
-    
-    name_parts = physician_name.split(maxsplit=1)
-    if len(name_parts) == 2:
-        first_name, last_name = name_parts
-    else:
-        first_name, last_name = "", name_parts[0]
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
+app = FastAPI()
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# In-memory storage for calculation data; replace with a database in production
+calculation_data_store = {}
+
+# Models
+class PhysicianRequest(BaseModel):
+    search_term: str
+    state: Optional[str] = None
+    search_type: str = "name"
+
+class ReportRequest(BaseModel):
+    email: str
+    calc_id: str
+
+@app.post("/api/physician")
+async def search_physician(request: PhysicianRequest):
+    try:
+        logger.info(f"Searching by {request.search_type}: {request.search_term}")
+        api_url = "https://data.cms.gov/data-api/v1/dataset/8889d81e-2ee7-448f-8713-f071038289b5/data"
+
+        result = fetch_physician_data(
+            api_url=api_url,
+            physician_name=request.search_term,
+            search_type=request.search_type,
+            state=request.state
+        )
+
+        if result is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No physician found with {request.search_type} '{request.search_term}'"
+            )
+
+        return result
+    except Exception as e:
+        logger.error(f"Error occurred: {str(e)}")
+        if isinstance(e, HTTPException):
+            raise
+        raise HTTPException(status_code=500, detail=str(e))
+
+def fetch_physician_data(
+    api_url: str,
+    physician_name: str,
+    search_type: str = "name",
+    state: Optional[str] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Fetch physician data from CMS API
+    """
     # Setup retry strategy
     retry_strategy = Retry(
-        total=3,
+        total=3,  # number of retries
         status_forcelist=[429, 500, 502, 503, 504],
         allowed_methods=["HEAD", "GET", "OPTIONS"]
     )
     adapter = HTTPAdapter(max_retries=retry_strategy)
-    http = requests.Session()
-    http.mount("https://", adapter)
-    http.mount("http://", adapter)
+    session = requests.Session()
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
 
-    potential_matches = []
-
-    for page in range(max_pages):
-        params = {
-            'filter[Rndrng_Prvdr_Last_Org_Name]': last_name,
-            'size': page_size,
-            'offset': offset
-        }
-
-        try:
-            print(f"Making API request for {physician_name} with offset {offset}")
-            response = http.get(api_url, params=params, timeout=timeout)
-            response.raise_for_status()
-            
-            print(f"Response status code: {response.status_code}")
-
-            data = response.json()
-
-            if not data:
-                print("No more data received from API")
-                break
-            
-            print(f"Received {len(data)} results")
-            
-            # Look for exact and partial matches
-            for r in data:
-                if r['Rndrng_Prvdr_Last_Org_Name'].lower() == last_name.lower():
-                    if r['Rndrng_Prvdr_First_Name'].lower() == first_name.lower():
-                        # Exact match
-                        return {
-                            'name': f"{r['Rndrng_Prvdr_First_Name']} {r['Rndrng_Prvdr_Last_Org_Name']}",
-                            'Tot_Benes': r.get('Tot_Benes', 'N/A'),
-                            'Tot_Mdcr_Alowd_Amt': r.get('Tot_Mdcr_Alowd_Amt', 'N/A'),
-                            'NPI': r.get('Rndrng_NPI', 'N/A')
-                        }
-                    elif first_name.lower() in r['Rndrng_Prvdr_First_Name'].lower():
-                        # Partial match on first name
-                        potential_matches.append(r)
-            
-            if len(data) < page_size:
-                print(f"Reached end of data for {physician_name}")
-                break
-            
-            offset += page_size
-            time.sleep(1)  # Add a small delay between requests
-            
-        except requests.RequestException as e:
-            print(f"Error making request: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                print(f"Response status code: {e.response.status_code}")
-                print(f"Response content: {e.response.text[:200]}...")
-            time.sleep(2)  # Wait a bit longer before retrying
-
-    # If no exact match found, return the first potential match or None
-    if potential_matches:
-        best_match = potential_matches[0]
-        print(f"No exact match found for {physician_name}. Returning best potential match.")
-        return {
-            'name': f"{best_match['Rndrng_Prvdr_First_Name']} {best_match['Rndrng_Prvdr_Last_Org_Name']}",
-            'Tot_Benes': best_match.get('Tot_Benes', 'N/A'),
-            'Tot_Mdcr_Alowd_Amt': best_match.get('Tot_Mdcr_Alowd_Amt', 'N/A'),
-            'NPI': best_match.get('Rndrng_NPI', 'N/A')
-        }
-    
-    print(f"No matches found for {physician_name}")
-    return None
-
-def get_physician_names():
-    file_path = 'physician_names.txt'
-    if not os.path.exists(file_path):
-        print(f"Error: {file_path} not found.")
-        return []
-
-    with open(file_path, 'r', encoding='utf-8') as file:
-        content = file.read()
-    
-    names = extract_names_from_rtf(content)
-    print(f"Extracted {len(names)} names.")
-    return names
-
-def export_to_csv(results):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"physician_data_{timestamp}.csv"
-    
-    with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
-        fieldnames = ['Name', 'NPI', 'Total Beneficiaries', 'Total Medicare Allowed Amount']  # Added NPI
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        
-        writer.writeheader()
-        for result in results:
-            writer.writerow({
-                'Name': result['name'],
-                'NPI': result['NPI'],  # Added NPI
-                'Total Beneficiaries': result['Tot_Benes'],
-                'Total Medicare Allowed Amount': result['Tot_Mdcr_Alowd_Amt']
-            })
-    
-    print(f"Results exported to {filename}")
-
-def main():
-    api_url = "https://data.cms.gov/data-api/v1/dataset/8889d81e-2ee7-448f-8713-f071038289b5/data"
-    
-    physician_names = get_physician_names()
-    
-    if not physician_names:
-        print("No physician names found. Exiting.")
-        return
-
-    print(f"Found {len(physician_names)} physician names.")
-    
-    results = []
-    for name in physician_names:
-        print(f"Processing: {name}")
-        result = fetch_physician_data(api_url, name)
-        if result:
-            print(f"Name: {result['name']}")
-            print(f"NPI: {result['NPI']}")  # Added NPI output
-            print(f"Total Beneficiaries: {result['Tot_Benes']}")
-            print(f"Total Medicare Allowed Amount: {result['Tot_Mdcr_Alowd_Amt']}")
-            results.append(result)
+    try:
+        if search_type == "npi":
+            # Direct NPI lookup
+            logger.info(f"Making API request for NPI: {physician_name}")
+            params = {
+                'filter[Rndrng_NPI]': physician_name,
+                'size': 1  # We only need one result for NPI
+            }
         else:
-            print(f"No data found for {name}")
-        print("---")
-    
-    if results:
-        export_to_csv(results)
-    else:
-        print("No results to export.")
+            # Name-based search
+            name_parts = physician_name.split(maxsplit=1)
+            if len(name_parts) == 2:
+                first_name, last_name = name_parts
+            else:
+                last_name = name_parts[0]
+                first_name = ""
+
+            logger.info(f"Making API request for name: {first_name} {last_name}")
+            params = {
+                'filter[Rndrng_Prvdr_Last_Org_Name]': last_name,
+                'size': 5000
+            }
+
+        # Add state filter if provided
+        if state:
+            params['filter[Rndrng_Prvdr_State_Abrvtn]'] = state.upper()
+
+        # Make API request
+        response = session.get(
+            api_url,
+            params=params,
+            timeout=30
+        )
+        response.raise_for_status()
+
+        data = response.json()
+        logger.info(f"Received {len(data)} results from API")
+
+        if not data:
+            logger.info("No results found")
+            return None
+
+        # For NPI search, return first match
+        if search_type == "npi":
+            if data:
+                result = data[0]
+                return {
+                    'name': f"{result['Rndrng_Prvdr_First_Name']} {result['Rndrng_Prvdr_Last_Org_Name']}",
+                    'Tot_Benes': int(result.get('Tot_Benes', 0)),
+                    'Tot_Mdcr_Alowd_Amt': float(result.get('Tot_Mdcr_Alowd_Amt', 0)),
+                    'NPI': result.get('Rndrng_NPI'),
+                    'State': result.get('Rndrng_Prvdr_State_Abrvtn')
+                }
+            return None
+
+        # For name search, look for exact match
+        for result in data:
+            if search_type == "name":
+                if (result['Rndrng_Prvdr_Last_Org_Name'].lower() == last_name.lower() and
+                    (not first_name or result['Rndrng_Prvdr_First_Name'].lower().startswith(first_name.lower()))):
+
+                    logger.info(f"Found match: {result['Rndrng_Prvdr_First_Name']} {result['Rndrng_Prvdr_Last_Org_Name']}")
+                    return {
+                        'name': f"{result['Rndrng_Prvdr_First_Name']} {result['Rndrng_Prvdr_Last_Org_Name']}",
+                        'Tot_Benes': int(result.get('Tot_Benes', 0)),
+                        'Tot_Mdcr_Alowd_Amt': float(result.get('Tot_Mdcr_Alowd_Amt', 0)),
+                        'NPI': result.get('Rndrng_NPI'),
+                        'State': result.get('Rndrng_Prvdr_State_Abrvtn')
+                    }
+
+        logger.info("No exact matches found")
+        return None
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"API request failed: {str(e)}")
+        raise
+    except Exception as e:
+        logger.error(f"Error processing physician data: {str(e)}")
+        raise
+
+@app.post("/api/store-calculation")
+async def store_calculation(data: dict):
+    calc_id = str(uuid4())
+    calculation_data_store[calc_id] = data
+    return {"calc_id": calc_id}
+
+@app.post("/api/hubspot-webhook")
+async def hubspot_webhook(request: Request):
+    try:
+        data = await request.json()
+        email = data.get('email')
+        calc_id = data.get('calc_id')
+
+        if not email or not calc_id:
+            logger.error('Missing email or calc_id in webhook data.')
+            raise HTTPException(status_code=400, detail='Missing email or calc_id.')
+
+        # Retrieve calculation data
+        calculation_results = calculation_data_store.get(calc_id)
+
+        if not calculation_results:
+            logger.error('Calculation data not found for calc_id.')
+            raise HTTPException(status_code=404, detail='Calculation data not found.')
+
+        # Generate PDF report
+        pdf_report = generate_pdf_report(calculation_results)
+
+        # Send email with the report attached
+        send_email_with_attachment(
+            recipient=email,
+            subject="Your CCM Financial Pro Forma",
+            body="Please find your detailed pro forma report attached.",
+            attachment=pdf_report,
+            attachment_filename="Pro_Forma_Report.pdf"
+        )
+
+        return {"message": "Report sent successfully"}
+    except Exception as e:
+        logger.error(f"Error sending report: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+def generate_pdf_report(calculation_results):
+    # Implement PDF generation logic here
+    # For simplicity, we'll create a basic PDF using reportlab
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+    from io import BytesIO
+
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    textobject = c.beginText(50, height - 50)
+    textobject.setFont("Helvetica", 12)
+
+    textobject.textLine("CCM Financial Pro Forma Report")
+    textobject.textLine("")
+
+    textobject.textLine("Providers Found:")
+    for provider in calculation_results['providers']:
+        textobject.textLine(f"- {provider['name']} (NPI: {provider['npi']}) - Patients: {provider['totalPatients']:,}")
+
+    if calculation_results.get('notFoundNPIs'):
+        textobject.textLine("")
+        textobject.textLine("NPIs Not Found:")
+        for npi in calculation_results['notFoundNPIs']:
+            textobject.textLine(f"- {npi}")
+
+    textobject.textLine("")
+    textobject.textLine(f"Total Medicare Patients: {calculation_results['totalPatients']:,}")
+    textobject.textLine(f"CCM-Eligible Patients (80%): {int(calculation_results['totalPatients'] * 0.8):,}")
+    textobject.textLine(f"Expected Enrollment (50% of eligible): {calculation_results['enrolledPatients']:,}")
+    textobject.textLine("")
+    textobject.textLine(f"Total Annual Revenue: ${calculation_results['annualRevenue']:,.2f}")
+    textobject.textLine(f"Projected Annual Profit: ${calculation_results['annualProfit']:,.2f}")
+
+    c.drawText(textobject)
+    c.showPage()
+    c.save()
+
+    pdf_value = buffer.getvalue()
+    buffer.close()
+    return pdf_value
+
+def send_email_with_attachment(recipient, subject, body, attachment, attachment_filename):
+    smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_username = os.getenv("SMTP_USERNAME")
+    smtp_password = os.getenv("SMTP_PASSWORD")
+    sender_email = os.getenv("SENDER_EMAIL")
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = recipient
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(body, 'plain'))
+
+    part = MIMEApplication(attachment, Name=attachment_filename)
+    part['Content-Disposition'] = f'attachment; filename="{attachment_filename}"'
+    msg.attach(part)
+
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            logger.info("Connecting to SMTP server...")
+            server.starttls()
+            logger.info("Logging into SMTP server...")
+            server.login(smtp_username, smtp_password)
+            logger.info("Sending email...")
+            server.send_message(msg)
+            logger.info("Email sent successfully!")
+    except Exception as e:
+        logger.error(f"SMTP Error: {str(e)}")
+        raise
 
 if __name__ == "__main__":
-    main()
+    logger.info("Starting server...")
+    uvicorn.run("cms_calc:app", host="0.0.0.0", port=8000, reload=True)

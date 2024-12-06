@@ -1,8 +1,7 @@
 # Medicare Project Shortcuts - Jaan Version
 alias medstartjaan='cd "/Users/baaqiryusuf/Desktop/Medicare Revenue Data Calculator - Jaan" && ./start-servers.sh'
 alias medbackendjaan='cd "/Users/baaqiryusuf/Desktop/Medicare Revenue Data Calculator - Jaan" && python3 api.py'
-alias medfrontendjaan='cd "/Users/baaqiryusuf/Desktop/Medicare Revenue Data Calculator - Jaan/React Frontend/physician-lookup-frontend" && npm run dev'
-# Medicare App Shortcuts
+alias medfrontendjaan='cd "/Users/baaqiryusuf/Desktop/Medicare Revenue Data Calculator - Jaan/React Frontend/physician-lookup-frontend" && npm run dev'# Medicare App Shortcuts
 alias med='cd "/Users/baaqiryusuf/Desktop/Medicare Revenue Data Calculator"'
 alias medf='cd "/Users/baaqiryusuf/Desktop/Medicare Revenue Data Calculator/React Frontend/physician-lookup-frontend"'
 alias medback='med && python3 api.py'

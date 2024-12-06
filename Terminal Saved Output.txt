@@ -1,0 +1,161 @@
+Last login: Tue Nov 26 10:07:34 on ttys002
+baaqiryusuf@Baaqirs-MBP ~ % >....                                               
+    lsof -ti:5173 | xargs kill -9 2>/dev/null
+    echo -e "${GREEN}All servers stopped${NC}"
+}
+
+# Start both servers
+start_backend
+sleep 2
+start_frontend
+
+echo -e "\n${GREEN}Both servers are running!${NC}"
+echo -e "Frontend: http://localhost:5173"
+echo -e "Backend: http://localhost:8000"
+echo -e "\n${BLUE}Press Ctrl+C to stop both servers${NC}"
+
+# Cleanup on exit
+trap "stop_servers" EXIT
+
+# Keep script running
+wait
+EOL
+
+# Make the script executable
+chmod +x start-servers.sh
+zsh: command not found: #
+zsh: command not found: #
+baaqiryusuf@Baaqirs-MBP Medicare Revenue Data Calculator - Jaan % nano ~/.zshrc
+baaqiryusuf@Baaqirs-MBP Medicare Revenue Data Calculator - Jaan % >....         
+    lsof -ti:5173 | xargs kill -9 2>/dev/null
+    echo -e "${GREEN}All servers stopped${NC}"
+}
+
+# Start both servers
+start_backend
+sleep 2
+start_frontend
+
+echo -e "\n${GREEN}Both servers are running!${NC}"
+echo -e "Frontend: http://localhost:5173"
+echo -e "Backend: http://localhost:8000"
+echo -e "\n${BLUE}Press Ctrl+C to stop both servers${NC}"
+
+# Cleanup on exit
+trap "stop_servers" EXIT
+
+# Keep script running
+wait
+EOL
+
+# Make the script executable
+chmod +x start-servers.sh
+zsh: command not found: #
+zsh: command not found: #
+baaqiryusuf@Baaqirs-MBP Medicare Revenue Data Calculator - Jaan % medstartjaan
+zsh: command not found: medstartjaan
+baaqiryusuf@Baaqirs-MBP Medicare Revenue Data Calculator - Jaan % source ~/.zshrc
+baaqiryusuf@Baaqirs-MBP Medicare Revenue Data Calculator - Jaan % medstartjaan
+zsh: command not found: medstartjaan
+baaqiryusuf@Baaqirs-MBP Medicare Revenue Data Calculator - Jaan % nano ~/.zshrc
+baaqiryusuf@Baaqirs-MBP Medicare Revenue Data Calculator - Jaan % >....         
+    lsof -ti:5173 | xargs kill -9 2>/dev/null
+    echo -e "${GREEN}All servers stopped${NC}"
+}
+
+# Start both servers
+start_backend
+sleep 2
+start_frontend
+
+echo -e "\n${GREEN}Both servers are running!${NC}"
+echo -e "Frontend: http://localhost:5173"
+echo -e "Backend: http://localhost:8000"
+echo -e "\n${BLUE}Press Ctrl+C to stop both servers${NC}"
+
+# Cleanup on exit
+trap "stop_servers" EXIT
+
+# Keep script running
+wait
+EOL
+
+# Make the script executable
+chmod +x start-servers.sh
+zsh: command not found: #
+zsh: command not found: #
+baaqiryusuf@Baaqirs-MBP Medicare Revenue Data Calculator - Jaan % source ~/.zshrc
+baaqiryusuf@Baaqirs-MBP Medicare Revenue Data Calculator - Jaan % medstartjaan
+zsh: command not found: medstartjaan
+baaqiryusuf@Baaqirs-MBP Medicare Revenue Data Calculator - Jaan % nano ~/.zshrc
+
+  UW PICO 5.09            File: /Users/baaqiryusuf/.zshrc            Modified  
+
+# Medicare Project Shortcuts - Jaan Version
+alias medstartjaan='cd "/Users/baaqiryusuf/Desktop/Medicare Revenue Data Calcu$
+alias medbackendjaan='cd "/Users/baaqiryusuf/Desktop/Medicare Revenue Data Cal$
+$n dev'# Medicare App Shortcuts
+alias med='cd "/Users/baaqiryusuf/Desktop/Medicare Revenue Data Calculator"'
+alias medf='cd "/Users/baaqiryusuf/Desktop/Medicare Revenue Data Calculator/Re$
+alias medback='med && python3 api.py'
+alias medfront='medf && npm run dev'
+alias medstart='bash "/Users/baaqiryusuf/Desktop/Medicare Revenue Data Calcula$
+alias medstop='lsof -ti:8000,5173 | xargs kill -9 2>/dev/null'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+^G Get Help  ^O WriteOut  ^R Read File ^Y Prev Pg   ^K Cut Text  ^C Cur Pos   
+^X Exit      ^J Justify   ^W Where is  ^V Next Pg   ^U UnCut Text^T To Spell  
