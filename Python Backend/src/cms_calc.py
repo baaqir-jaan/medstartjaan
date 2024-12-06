@@ -73,7 +73,7 @@ def fetch_physician_data(
         if search_type == "npi" and data:
             result = data[0]
             return {
-                "name": f"{result.get(\"Rndrng_Prvdr_First_Name\", \"\")} {result.get(\"Rndrng_Prvdr_Last_Org_Name\", \"\")}",
+                "name": f'{result.get("Rndrng_Prvdr_First_Name", "")} {result.get("Rndrng_Prvdr_Last_Org_Name", "")}',
                 "Tot_Benes": int(result.get("Tot_Benes", 0)),
                 "Tot_Mdcr_Alowd_Amt": float(result.get("Tot_Mdcr_Alowd_Amt", 0)),
                 "NPI": result.get("Rndrng_NPI"),
