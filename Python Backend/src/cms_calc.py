@@ -1,3 +1,4 @@
+import os
 import requests
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -117,4 +118,4 @@ async def search_physician(request: PhysicianRequest):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)' > cms_calc.py
+    uvicorn.run(app, host="0.0.0.0", port=port)
