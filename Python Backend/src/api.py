@@ -3,6 +3,18 @@ import logging
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from typing import Optional, Dict, Any
+from flask import Flask
+# Add any required CORS settings
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
+
+# Ensure you have a port configuration that works with Railway
+port = os.environ.get('PORT', 5000)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=port)
 
 logger = logging.getLogger(__name__)
 
