@@ -1,9 +1,8 @@
 // CCMCalculator.js
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DollarSign, Download, Loader, AlertCircle } from 'lucide-react';
 
-// Add this at the top of your file, after the imports
 const API_URL = "https://medstartjaan.onrender.com";
 
 const CALCULATION_CONSTANTS = {
@@ -23,20 +22,27 @@ const CCMCalculator = () => {
   const [error, setError] = useState('');
   const [showEmailForm, setShowEmailForm] = useState(false);
 
+  // Example of an initial fetch if needed
   useEffect(() => {
     const fetchData = async () => {
-      const response = await fetch(`${API_URL}/api/physician`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ search_term: 'someNPI', search_type: 'npi' }),
-      });
+      try {
+        const response = await fetch(`${API_URL}/api/physician`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ search_term: 'someNPI', search_type: 'npi' }),
+        });
 
-      if (!response.ok) {
-        // handle error
+        if (!response.ok) {
+          // handle error if desired, or just omit if you don't need this initial fetch
+          console.error('Initial fetch failed');
+          return;
+        }
+
+        const jsonData = await response.json();
+        setData(jsonData);
+      } catch (err) {
+        console.error('Error in initial fetch:', err);
       }
-
-      const jsonData = await response.json();
-      setData(jsonData);
     };
 
     fetchData();
@@ -66,7 +72,7 @@ const CCMCalculator = () => {
 
       for (let npi of npiArray) {
         try {
-          const response = await fetch('/api/physician', {
+          const response = await fetch(`${API_URL}/api/physician`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -82,13 +88,13 @@ const CCMCalculator = () => {
             throw new Error(errorData || 'Failed to fetch physician data');
           }
 
-          const data = await response.json();
+          const physicianData = await response.json();
 
-          if (!data) {
+          if (!physicianData) {
             throw new Error('No data found for this NPI');
           }
 
-          const patients = parseInt(data.Tot_Benes) || 0;
+          const patients = parseInt(physicianData.Tot_Benes) || 0;
           const eligiblePatients = Math.round(
             patients * CALCULATION_CONSTANTS.eligiblePatientPercentage
           );
@@ -100,8 +106,8 @@ const CCMCalculator = () => {
           totalEnrolledPatients += enrolledPatients;
 
           providerDetails.push({
-            name: data.name || 'Unknown Provider',
-            npi: data.NPI || npi,
+            name: physicianData.name || 'Unknown Provider',
+            npi: physicianData.NPI || npi,
             totalPatients: patients,
           });
         } catch (err) {
@@ -132,7 +138,7 @@ const CCMCalculator = () => {
 
       // Store calculation results on the backend
       try {
-        const storeResponse = await fetch('/api/store-calculation', {
+        const storeResponse = await fetch(`${API_URL}/api/store-calculation`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -150,7 +156,6 @@ const CCMCalculator = () => {
       }
 
       setResults(calculationResults);
-
       setShowEmailForm(true);
     } catch (err) {
       console.error('Error:', err);
@@ -211,73 +216,4 @@ const CCMCalculator = () => {
               <div className="space-y-6">
                 {/* Providers Info */}
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-medium text-gray-700">Providers Found:</h3>
-                  <ul className="list-disc list-inside">
-                    {results.providers.map((provider, index) => (
-                      <li key={index}>
-                        {provider.name} (NPI: {provider.npi}) - Patients:{' '}
-                        {provider.totalPatients.toLocaleString()}
-                      </li>
-                    ))}
-                  </ul>
-                  {results.notFoundNPIs.length > 0 && (
-                    <div className="mt-4">
-                      <h4 className="font-medium text-red-600">NPIs Not Found:</h4>
-                      <ul className="list-disc list-inside text-red-600">
-                        {results.notFoundNPIs.map((npi, index) => (
-                          <li key={index}>{npi}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-purple-50 rounded-lg">
-                    <h3 className="text-lg font-semibold text-purple-800">Total Revenue</h3>
-                    <p className="text-2xl font-bold text-purple-900">
-                      ${Math.round(results.annualRevenue).toLocaleString()}
-                    </p>
-                    <p className="text-sm text-purple-600">
-                      Based on {results.enrolledPatients.toLocaleString()} enrolled patients
-                    </p>
-                  </div>
-
-                  <div className="p-4 bg-blue-50 rounded-lg">
-                    <h3 className="text-lg font-semibold text-blue-800">Annual Profit</h3>
-                    <p className="text-2xl font-bold text-blue-900">
-                      ${Math.round(results.annualProfit).toLocaleString()}
-                    </p>
-                    <p className="text-sm text-blue-600">With turnkey solution</p>
-                  </div>
-                </div>
-
-                {showEmailForm && (
-                  <div className="space-y-4">
-                    <p className="text-sm text-gray-600">
-                      Get your detailed pro forma breakdown:
-                    </p>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => {
-                          // Redirect to HubSpot landing page
-                          window.location.href = `https://your-hubspot-landing-page.com/?calc_id=${calcId}`;
-                        }}
-                        className="w-full p-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg flex items-center justify-center space-x-2"
-                      >
-                        <Download className="h-5 w-5" />
-                        <span>Get Detailed Pro Forma Report</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default CCMCalculator;
+                  <h3 cl
