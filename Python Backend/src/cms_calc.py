@@ -1,4 +1,3 @@
-import os
 import requests
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,10 +15,9 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update this with your Vercel URL in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -74,7 +72,7 @@ def fetch_physician_data(
         if search_type == "npi" and data:
             result = data[0]
             return {
-                "name": f"{result["Rndrng_Prvdr_First_Name"]} {result["Rndrng_Prvdr_Last_Org_Name"]}",
+                "name": f"{result.get(\"Rndrng_Prvdr_First_Name\", \"\")} {result.get(\"Rndrng_Prvdr_Last_Org_Name\", \"\")}",
                 "Tot_Benes": int(result.get("Tot_Benes", 0)),
                 "Tot_Mdcr_Alowd_Amt": float(result.get("Tot_Mdcr_Alowd_Amt", 0)),
                 "NPI": result.get("Rndrng_NPI"),
@@ -119,4 +117,4 @@ async def search_physician(request: PhysicianRequest):
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=port)' > cms_calc.py
