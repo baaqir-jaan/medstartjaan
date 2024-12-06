@@ -1,5 +1,3 @@
-// CCMCalculator.js
-
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Download, Loader, AlertCircle } from 'lucide-react';
 
@@ -13,7 +11,7 @@ const CALCULATION_CONSTANTS = {
   enrollmentRate: 0.50,
 };
 
-const CCMCalculator = () => {
+const App = () => {
   const [data, setData] = useState(null);
   const [npiList, setNpiList] = useState('');
   const [results, setResults] = useState(null);
@@ -33,7 +31,6 @@ const CCMCalculator = () => {
         });
 
         if (!response.ok) {
-          // handle error if desired, or just omit if you don't need this initial fetch
           console.error('Initial fetch failed');
           return;
         }
@@ -216,4 +213,72 @@ const CCMCalculator = () => {
               <div className="space-y-6">
                 {/* Providers Info */}
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 cl
+                  <h3 className="font-medium text-gray-700">Providers Found:</h3>
+                  <ul className="list-disc list-inside">
+                    {results.providers.map((provider, index) => (
+                      <li key={index}>
+                        {provider.name} (NPI: {provider.npi}) - Patients:{' '}
+                        {provider.totalPatients.toLocaleString()}
+                      </li>
+                    ))}
+                  </ul>
+                  {results.notFoundNPIs.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="font-medium text-red-600">NPIs Not Found:</h4>
+                      <ul className="list-disc list-inside text-red-600">
+                        {results.notFoundNPIs.map((npi, index) => (
+                          <li key={index}>{npi}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-purple-50 rounded-lg">
+                    <h3 className="text-lg font-semibold text-purple-800">Total Revenue</h3>
+                    <p className="text-2xl font-bold text-purple-900">
+                      ${Math.round(results.annualRevenue).toLocaleString()}
+                    </p>
+                    <p className="text-sm text-purple-600">
+                      Based on {results.enrolledPatients.toLocaleString()} enrolled patients
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <h3 className="text-lg font-semibold text-blue-800">Annual Profit</h3>
+                    <p className="text-2xl font-bold text-blue-900">
+                      ${Math.round(results.annualProfit).toLocaleString()}
+                    </p>
+                    <p className="text-sm text-blue-600">With turnkey solution</p>
+                  </div>
+                </div>
+
+                {showEmailForm && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                      Get your detailed pro forma breakdown:
+                    </p>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => {
+                          window.location.href = `https://your-hubspot-landing-page.com/?calc_id=${calcId}`;
+                        }}
+                        className="w-full p-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg flex items-center justify-center space-x-2"
+                      >
+                        <Download className="h-5 w-5" />
+                        <span>Get Detailed Pro Forma Report</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default App;
