@@ -19,8 +19,9 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showEmailForm, setShowEmailForm] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
-  // Example of an initial fetch if needed
+  // Example initial fetch (optional)
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -41,7 +42,6 @@ const App = () => {
         console.error('Error in initial fetch:', err);
       }
     };
-
     fetchData();
   }, []);
 
@@ -53,8 +53,8 @@ const App = () => {
 
     setLoading(true);
     setError('');
-    setResults(null); // Clear previous results
-    setShowEmailForm(false); // Hide email form during calculation
+    setResults(null);
+    setShowEmailForm(false);
 
     try {
       const npiArray = npiList
@@ -145,7 +145,6 @@ const App = () => {
 
         const { calc_id } = await storeResponse.json();
 
-        // Save calc_id for later use
         setCalcId(calc_id);
       } catch (err) {
         console.error('Error storing calculation data:', err);
@@ -159,6 +158,35 @@ const App = () => {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const fileContent = event.target.result;
+        // Assume one NPI per line
+        setNpiList(fileContent);
+      };
+      reader.onerror = () => {
+        setError('Failed to read the file. Please try again.');
+      };
+      reader.readAsText(file);
     }
   };
 
@@ -176,6 +204,23 @@ const App = () => {
           </div>
 
           <div className="space-y-6">
+            {/* Drag and Drop Area */}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed p-4 rounded-lg text-center transition-colors ${
+                dragOver ? 'border-blue-600 bg-blue-50' : 'border-gray-300'
+              }`}
+            >
+              <p className="text-gray-700">
+                Drag & drop a .txt or .csv file with NPIs (one per line) here
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Or simply paste NPIs in the textbox below
+              </p>
+            </div>
+
             <div className="space-y-4">
               <textarea
                 value={npiList}
@@ -184,6 +229,9 @@ const App = () => {
                 className="w-full p-3 border rounded-lg h-32 focus:ring-2 focus:ring-purple-500"
                 disabled={loading}
               />
+              <p className="text-sm text-gray-500">
+                Note: More NPIs mean more processing time.
+              </p>
 
               <button
                 onClick={handleCalculate}
@@ -225,6 +273,10 @@ const App = () => {
                   {results.notFoundNPIs.length > 0 && (
                     <div className="mt-4">
                       <h4 className="font-medium text-red-600">NPIs Not Found:</h4>
+                      <p className="text-sm text-red-600 mb-2">
+                        The following NPIs were not found in the CMS database. Please ensure these
+                        are correct:
+                      </p>
                       <ul className="list-disc list-inside text-red-600">
                         {results.notFoundNPIs.map((npi, index) => (
                           <li key={index}>{npi}</li>
@@ -256,9 +308,7 @@ const App = () => {
 
                 {showEmailForm && (
                   <div className="space-y-4">
-                    <p className="text-sm text-gray-600">
-                      Get your detailed pro forma breakdown:
-                    </p>
+                    <p className="text-sm text-gray-600">Get your detailed pro forma breakdown:</p>
                     <div className="flex space-x-2">
                       <button
                         onClick={() => {
